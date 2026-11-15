@@ -1,0 +1,48 @@
+{
+    "name": "indianopinion/editor-ai-sidebar",
+    "description": "One block-editor sidebar for AI actions: each action calls a server endpoint and shows its result for approval before anything is written.",
+    "type": "wordpress-plugin",
+    "license": "MIT",
+    "keywords": ["wordpress", "block-editor", "sidebar", "ai", "approval"],
+    "homepage": "https://github.com/IndianOpinion/editor-ai-sidebar",
+    "support": {
+        "issues": "https://github.com/IndianOpinion/editor-ai-sidebar/issues",
+        "email": "hello@indianopinion.org"
+    },
+    "authors": [
+        { "name": "Indian Opinion", "email": "hello@indianopinion.org" }
+    ],
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "php-stubs/wordpress-stubs": "^6.4",
+        "php-stubs/wp-cli-stubs": "^2.10",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^10.5",
+        "squizlabs/php_codesniffer": "^3.10",
+        "wp-coding-standards/wpcs": "^3.1"
+    },
+    "autoload": {
+        "psr-4": { "IndianOpinion\\EditorAiSidebar\\": "src/" },
+        "files": ["src/functions.php"]
+    },
+    "autoload-dev": {
+        "psr-4": { "IndianOpinion\\EditorAiSidebar\\Tests\\": "tests/" }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse --no-progress --memory-limit=1G",
+        "lint": "phpcs",
+        "check": ["@lint", "@analyse", "@test"]
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
