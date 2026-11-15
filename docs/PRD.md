@@ -101,8 +101,8 @@ applies through the provider's apply callback.
    lower-case letters, digits and hyphens, 3 to 64 characters in total.
    Anything else is rejected with reason `invalid_id`.
 3. A definition missing a required key (`id`, `label`, `group`, `result`,
-   `apply`, `run`) or carrying a key of the wrong type is rejected. The
-   rest of the list is kept.
+   `apply`, `run`) or carrying a key of the wrong type is rejected
+   with reason `invalid_definition`. The rest of the list is kept.
 4. Two definitions with the same id: the first one wins, the second is
    rejected with reason `duplicate_id`.
 5. A definition whose `contract` is higher than the contract versions this
@@ -111,7 +111,7 @@ applies through the provider's apply callback.
 6. A server-mode action that declares any of the core post fields `title`,
    `excerpt`, `content`, `status`, `date`, `slug` or `author` as a target is
    rejected with reason `core_field_server_write`. Those fields are only
-   ever changed in editor mode (case 47 explains why).
+   ever changed in editor mode (lessons 1 and 2 explain why).
 7. An editor-mode action whose `operation` is not one of the fixed editor
    operations (section 5.5) is rejected with reason `unknown_operation`.
 8. An editor-mode `set_meta` action whose meta key is not registered with
@@ -288,7 +288,7 @@ applies through the provider's apply callback.
     action's declared needs as the editor sees them now.
 48. The server checks: sidebar enabled, nonce, the result record exists and
     has not expired (410 `result_expired`), belongs to this user (403
-    `not_your_result`), matches the post and action in the URL body, is not
+    `not_your_result`), matches the post and action in the request body, is not
     used (409 `result_used`), the action still exists (410 `action_gone`),
     the user holds the apply capability and `edit_post` on the post, and the
     post is not locked by another user (409 `post_locked`).
@@ -460,8 +460,26 @@ There is no `register_action` function. The filter is the one way in.
 | `dismiss` | callable | no | | `fn( string $result_id, Item[] $items, int $user_id ): void` |
 | `available` | callable | no | | `fn( int $post_id, int $user_id ): true\|string`; a string is the reason shown |
 
+The `apply` array also takes these keys where the operation needs them:
+`position` (`insert_blocks`: `start`, `end` or `after_selection`, default
+`end`), `attribute` (`set_block_attribute`: the attribute name) and
+`meta_map` (`set_meta` with a `fields` item: field name to meta key; with a
+`text` item use `targets` with one `meta:<key>`). A missing key the
+operation needs rejects the definition with reason `invalid_definition`.
+
 A `Pending` returned by an action with no `poll` callback is a provider
 fault (case 37).
+
+Callbacks may take the value objects of section 5.3 or, for providers with
+no wish to depend on the classes, plain arrays of the same shape: `run` and
+`poll` receive `{ action_id, post_id, user_id, context, selection,
+language, context_hash }`, `apply_callback` receives `{ action_id, post_id,
+user_id, result_id, item, edited, confirm_stale }`, and a callback may
+return the array form of a result (section 5.6), of a pending job
+(`{ "pending": { "ref": string, "poll_after": int } }`) or of an outcome
+(`{ "message": string, "targets": string[], "links": [ { "label": string,
+"url": string } ] }`). A `WP_Error` may carry `data.status` (HTTP status)
+and `data.final` (bool, case 57).
 
 Other filters:
 
@@ -533,6 +551,30 @@ response sends `Cache-Control: no-store`.
 | `DELETE /jobs/<job_id>` | | 204 |
 | `POST /results/<result_id>/apply` | `post_id`, `action_id`, `item_id`, `value`, `approved` (must be true), `context_hash`, `confirm_stale` | 200 `{ mode, operation, targets, value, message, links }` |
 | `POST /results/<result_id>/dismiss` | `post_id`, `action_id` | 204 |
+
+Request bodies are JSON. `context` holds only the keys the action lists in
+`needs`: `title` (string), `excerpt` (string), `content` (serialised
+blocks, string), `text` (plain text, string), `featured_media` (int),
+`language` (BCP 47 string), `post_type` (string), `status` (string), and
+`selection` (`{ name, client_id, attributes }`, where `attributes` holds
+only the names in `needs.selection_attributes`). A key not listed in
+`needs`, or of the wrong type, is 400 `context_invalid`.
+
+Context hash: SHA-256, hex, of the JSON encoding of the declared `context`
+with keys sorted, no insignificant white space and Unicode left unescaped.
+The sidebar computes it from the editor's current state with the same rule
+and sends it as `context_hash` on apply. The server stores the hash of the
+context it received at run time. Item hash: SHA-256, hex, of the same
+encoding of the item's `type` and `value`. Both are compared in constant
+time.
+
+`POST /actions/<id>/run` answers 202 with `{ job_id, poll_after }`
+(seconds). `GET /jobs/<job_id>` answers 200 with a result envelope when
+done, 202 with `{ job_id, poll_after }` while pending, and 404 `job_gone`.
+The apply request `value` has the type of the item: a string for `text`, an
+array of strings for `list`, an object of name to string for `fields`.
+`links` in the apply response is a list of `{ label, url }`. The `targets`
+in the apply response are the target strings of section 5.5.
 
 Result envelope: `{ result_id, action_id, post_id, layout, items: [ { id,
 type, value, notes, score, score_label, lang, dir } ], notes, context_hash,
