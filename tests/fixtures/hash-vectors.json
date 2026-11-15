@@ -1,0 +1,128 @@
+[
+  {
+    "input": {},
+    "canonical": "{}",
+    "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  {
+    "input": {
+      "title": "Hello"
+    },
+    "canonical": "{\"title\":\"Hello\"}",
+    "sha256": "5c924960820d681cb4ac7c1dd76c1b56b963dbbf718faba003691dd26cce3e38"
+  },
+  {
+    "input": {
+      "title": "हिन्दी शीर्षक",
+      "text": "नमस्ते दुनिया"
+    },
+    "canonical": "{\"text\":\"नमस्ते दुनिया\",\"title\":\"हिन्दी शीर्षक\"}",
+    "sha256": "a0ea4ba6284f6154616c7c56dbe4c908d5c46aec60639f1ec9d53899f0549e5b"
+  },
+  {
+    "input": {
+      "text": "line\nbreak\ttab \"quote\" back\\slash /slash"
+    },
+    "canonical": "{\"text\":\"line\\nbreak\\ttab \\\"quote\\\" back\\\\slash /slash\"}",
+    "sha256": "5fb60f4bc4c3912e55e2596408978051be6db92fc02a049f2cbd4d29e7d05fd0"
+  },
+  {
+    "input": {
+      "text": "control \u0001 \u001f del "
+    },
+    "canonical": "{\"text\":\"control \\u0001 \\u001f del \"}",
+    "sha256": "e3d7ec96d110286a806ef0ef7b99aee9f5258c7774fdb4c9701f255c881cff03"
+  },
+  {
+    "input": {
+      "text": "seps     end"
+    },
+    "canonical": "{\"text\":\"seps     end\"}",
+    "sha256": "ab9647db9583d2547561193267d46da43d64a3faedb5ffd2081b31056d9fe235"
+  },
+  {
+    "input": {
+      "text": "emoji 😀 and ZWJ 👩‍💻"
+    },
+    "canonical": "{\"text\":\"emoji 😀 and ZWJ 👩‍💻\"}",
+    "sha256": "b488b418da42f6351848a97c783165e6222fb7b9e554a2517caa237faed3e3c5"
+  },
+  {
+    "input": {
+      "zeta": 1,
+      "alpha": 2,
+      "mid": {
+        "b": true,
+        "a": null
+      }
+    },
+    "canonical": "{\"alpha\":2,\"mid\":{\"a\":null,\"b\":true},\"zeta\":1}",
+    "sha256": "3ffb4fd0f95be3a0988ae670286ec4f77bcdae94ebf0509af8ee766755359eee"
+  },
+  {
+    "input": {
+      "featured_media": 42,
+      "language": "fr-CA",
+      "post_type": "post",
+      "status": "draft"
+    },
+    "canonical": "{\"featured_media\":42,\"language\":\"fr-CA\",\"post_type\":\"post\",\"status\":\"draft\"}",
+    "sha256": "f9292a99c5513c1ba65f464e39c74a9ee0c4fab975eb4540a5bbafdf4cf72947"
+  },
+  {
+    "input": {
+      "selection": {
+        "name": "core/image",
+        "client_id": "abc-123",
+        "attributes": {}
+      }
+    },
+    "canonical": "{\"selection\":{\"attributes\":{},\"client_id\":\"abc-123\",\"name\":\"core/image\"}}",
+    "sha256": "aa555e943f19014e0ab0a7cb9ddb8008f5e338676365b305c7abee84ec944ceb"
+  },
+  {
+    "input": {
+      "selection": {
+        "name": "core/image",
+        "client_id": "abc-123",
+        "attributes": {
+          "url": "https://example.test/a.jpg",
+          "id": 7,
+          "alt": ""
+        }
+      }
+    },
+    "canonical": "{\"selection\":{\"attributes\":{\"alt\":\"\",\"id\":7,\"url\":\"https://example.test/a.jpg\"},\"client_id\":\"abc-123\",\"name\":\"core/image\"}}",
+    "sha256": "be7faf16cb58776dca9afc03a9c6cf1c9eaf791c7500723a32ee8a85054e2abb"
+  },
+  {
+    "input": {
+      "type": "list",
+      "value": [
+        "one",
+        "two"
+      ]
+    },
+    "canonical": "{\"type\":\"list\",\"value\":[\"one\",\"two\"]}",
+    "sha256": "bdcee9734e06b19b39849e1d63e61eccaf8b5ac835ac9051697b977f494a18ec"
+  },
+  {
+    "input": {
+      "type": "fields",
+      "value": {
+        "title": "T",
+        "description": "D"
+      }
+    },
+    "canonical": "{\"type\":\"fields\",\"value\":{\"description\":\"D\",\"title\":\"T\"}}",
+    "sha256": "eb1a0ed3514c9f23f85f43c5393104fff8ee0054d987ae263e8c7b7fcbd44e6c"
+  },
+  {
+    "input": {
+      "type": "text",
+      "value": "<img src=x onerror=alert(1)>"
+    },
+    "canonical": "{\"type\":\"text\",\"value\":\"<img src=x onerror=alert(1)>\"}",
+    "sha256": "6cb69cae690ba875ea291709a35478142b09fcaffec197a29263fdb3f72c8935"
+  }
+]

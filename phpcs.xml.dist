@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<ruleset name="editor-ai-sidebar">
+    <description>PSR-12 for layout, plus the WordPress security and SQL sniffs where they add value.</description>
+
+    <file>src</file>
+    <file>examples</file>
+    <file>tests</file>
+    <file>editor-ai-sidebar.php</file>
+    <file>uninstall.php</file>
+    <file>mu-plugin</file>
+    <file>phpstan-bootstrap.php</file>
+
+    <exclude-pattern>tests/stubs/*</exclude-pattern>
+    <exclude-pattern>vendor/*</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <rule ref="PSR12">
+        <exclude name="Generic.Files.LineLength"/>
+    </rule>
+
+    <!-- The plugin file, uninstall file and examples declare and hook at once, as WordPress expects. -->
+    <rule ref="PSR1.Files.SideEffects">
+        <exclude-pattern>editor-ai-sidebar.php</exclude-pattern>
+        <exclude-pattern>uninstall.php</exclude-pattern>
+        <exclude-pattern>mu-plugin/*</exclude-pattern>
+        <exclude-pattern>examples/*</exclude-pattern>
+        <exclude-pattern>phpstan-bootstrap.php</exclude-pattern>
+        <exclude-pattern>src/autoload.php</exclude-pattern>
+        <exclude-pattern>src/functions.php</exclude-pattern>
+    </rule>
+
+    <!-- WordPress: escape output, prepare SQL, no dev functions. -->
+    <rule ref="WordPress.Security.EscapeOutput">
+        <exclude-pattern>tests/*</exclude-pattern>
+        <!-- Exceptions become JSON error bodies through WP_Error, never HTML. -->
+        <exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped"/>
+    </rule>
+
+    <!-- Test doubles of wpdb keep core's method names. -->
+    <rule ref="PSR1.Methods.CamelCapsMethodName">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.DB.PreparedSQL"/>
+    <rule ref="WordPress.DB.PreparedSQLPlaceholders"/>
+    <rule ref="WordPress.PHP.DevelopmentFunctions">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.PHP.RestrictedPHPFunctions"/>
+    <rule ref="WordPress.PHP.NoSilencedErrors"/>
+    <rule ref="Squiz.PHP.Eval"/>
+    <rule ref="Generic.PHP.BacktickOperator"/>
+</ruleset>

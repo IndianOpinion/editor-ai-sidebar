@@ -1,0 +1,16 @@
+parameters:
+    level: 8
+    paths:
+        - src
+        - editor-ai-sidebar.php
+        - uninstall.php
+        - examples
+    bootstrapFiles:
+        - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+        - vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
+        - phpstan-bootstrap.php
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        -
+            # wp-admin include files exist only inside a WordPress install.
+            identifier: requireOnce.fileNotFound
