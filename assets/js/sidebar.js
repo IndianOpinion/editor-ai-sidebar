@@ -119,6 +119,11 @@
 			var spec = type && type.attributes ? type.attributes[attribute] : null;
 			return !!spec && (spec.type === 'string' || spec.type === 'rich-text');
 		},
+		attributeIsHtml: function (name, attribute) {
+			var type = wp.blocks.getBlockType(name);
+			var spec = type && type.attributes ? type.attributes[attribute] : null;
+			return !!spec && (spec.type === 'rich-text' || spec.source === 'html' || spec.source === 'rich-text');
+		},
 		getBlock: function (clientId) {
 			return sel('core/block-editor').getBlock(clientId);
 		},

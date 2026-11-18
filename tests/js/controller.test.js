@@ -531,3 +531,17 @@ test('set_block_attribute refuses an attribute that is not a string attribute of
 	assert.deepEqual(ed.calls, []);
 	assert.equal(s.ctrl.slot('test/alt').items.a.error, t.cannotApply);
 });
+
+test('set_block_attribute escapes provider text into an attribute stored as HTML', async () => {
+	const ed = images();
+	ed.attributeIsHtml = (name, attribute) => attribute === 'alt';
+	const s = await opened([altAction], {
+		[ALT_RUN]: () => envelope({ action_id: 'test/alt' }),
+		[APPLY]: () => ({ mode: 'editor', operation: 'set_block_attribute', targets: ['content'], value: '<img src=x onerror=alert(1)> & "q"', attribute: 'alt', message: '', links: [], sync: {} })
+	}, { ed });
+	await s.ctrl.run('test/alt');
+	await settle();
+	await s.ctrl.approve('test/alt', 'a');
+	await settle();
+	assert.deepEqual(ed.calls, [['updateBlockAttributes', 'i2', { alt: '&lt;img src=x onerror=alert(1)&gt; &amp; &quot;q&quot;' }]]);
+});

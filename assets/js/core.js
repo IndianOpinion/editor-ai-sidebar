@@ -952,7 +952,11 @@
 					return 'invalid';
 				}
 				var attributes = {};
-				attributes[apply.attribute] = value;
+				// An attribute stored as HTML (rich text, or sourced from markup)
+				// would read provider text as markup: escape it first (lesson 6).
+				attributes[apply.attribute] = ed.attributeIsHtml && ed.attributeIsHtml(block.name, apply.attribute)
+					? escapeHtml(value)
+					: value;
 				ed.updateBlockAttributes(block.clientId, attributes);
 				return 'done';
 			case 'insert_blocks':
