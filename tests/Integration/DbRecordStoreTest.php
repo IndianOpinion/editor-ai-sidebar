@@ -64,11 +64,29 @@ final class DbRecordStoreTest extends TestCase
     {
         $id = bin2hex(random_bytes(16));
         $this->store->insert($id, RecordStore::RESULT, 2, 10, 'p/a', [], '', 100, 200);
-        self::assertTrue($this->store->claim($id));
-        self::assertFalse($this->store->claim($id));
+        self::assertTrue($this->store->claim($id, 150));
+        self::assertFalse($this->store->claim($id, 150));
         $this->store->release($id);
-        self::assertTrue($this->store->claim($id));
-        self::assertFalse($this->store->claim('missing'));
+        self::assertFalse($this->store->claim($id, 200), 'an expired record cannot be claimed');
+        self::assertTrue($this->store->claim($id, 150));
+        self::assertFalse($this->store->claim('missing', 150));
+        $job = bin2hex(random_bytes(16));
+        $this->store->insert($job, RecordStore::JOB, 2, 10, 'p/a', [], '', 100, 200);
+        self::assertFalse($this->store->claim($job, 150), 'only result records are claimed');
+    }
+
+    public function testCounterStopsAtLimitUnderInterleavedCalls(): void
+    {
+        $id = 'cap-' . md5('p/a') . '-20261118';
+        self::assertSame(0, $this->store->counter($id));
+        $second = new DbRecordStore($this->db);
+        self::assertTrue($this->store->incrementCounter($id, 'p/a', 2, 100, 500));
+        self::assertTrue($second->incrementCounter($id, 'p/a', 2, 100, 500));
+        self::assertFalse($this->store->incrementCounter($id, 'p/a', 2, 100, 500));
+        self::assertFalse($second->incrementCounter($id, 'p/a', 2, 100, 500));
+        self::assertSame(2, $this->store->counter($id));
+        self::assertTrue($this->store->incrementCounter($id, 'p/a', 3, 100, 500), 'a raised cap allows one more');
+        self::assertSame(3, $second->counter($id));
     }
 
     public function testUpdateDataAndDelete(): void

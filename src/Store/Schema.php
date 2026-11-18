@@ -32,6 +32,7 @@ final class Schema
   created_at bigint(20) NOT NULL,
   expires_at bigint(20) NOT NULL,
   used tinyint(1) NOT NULL DEFAULT 0,
+  hits int(10) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY  (id),
   KEY owner (user_id,post_id,kind),
   KEY expires_at (expires_at)

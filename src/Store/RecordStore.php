@@ -17,6 +17,7 @@ interface RecordStore
     public const RESULT = 'result';
     public const JOB = 'job';
     public const LOCK = 'lock';
+    public const COUNTER = 'count';
 
     /**
      * @param array<string, mixed> $data
@@ -39,9 +40,10 @@ interface RecordStore
     public function find(string $id, string $kind): ?array;
 
     /**
-     * Mark a record used. True only for the caller that flipped it.
+     * Mark an unexpired result record used. True only for the caller that
+     * flipped it: one statement, so two requests cannot both win.
      */
-    public function claim(string $id): bool;
+    public function claim(string $id, int $now): bool;
 
     /**
      * Mark a claimed record unused again.
@@ -66,6 +68,18 @@ interface RecordStore
      * Take a lock row; false when an unexpired lock with that id exists.
      */
     public function acquireLock(string $id, int $userId, int $postId, string $actionId, int $now, int $expiresAt): bool;
+
+    /**
+     * Add one to a counter row unless it has reached $limit, in one atomic
+     * statement. True when this call was counted, false when the limit was
+     * already reached. The row is created on first use.
+     */
+    public function incrementCounter(string $id, string $actionId, int $limit, int $now, int $expiresAt): bool;
+
+    /**
+     * Current value of a counter row; 0 when it does not exist.
+     */
+    public function counter(string $id): int;
 
     /**
      * Delete rows whose expiry has passed. Returns the number removed.

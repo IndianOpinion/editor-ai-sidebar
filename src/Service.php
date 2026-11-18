@@ -167,19 +167,25 @@ final class Service
             throw new ApiError('action_unavailable', $reason, 409);
         }
 
-        foreach ($this->store->openJobs($userId, $post->ID, Clock::now()) as $job) {
-            if ($job['action_id'] === $actionId) {
-                throw $this->error('run_in_progress', 409);
-            }
-        }
+        // Lock first, then look for an open job, and hold the lock until a
+        // job record (if any) is stored: no window for a second run (case 26).
         $now = Clock::now();
         $lockId = 'lock-' . md5($userId . '|' . $post->ID . '|' . $actionId);
         if (!$this->store->acquireLock($lockId, $userId, $post->ID, $actionId, $now, $now + $definition->timeout() + 30)) {
             throw $this->error('run_in_progress', 409);
         }
-
         try {
-            $this->limiter->countDaily($actionId);
+            foreach ($this->store->openJobs($userId, $post->ID, Clock::now()) as $job) {
+                if ($job['action_id'] === $actionId) {
+                    throw $this->error('run_in_progress', 409);
+                }
+            }
+            if (!$this->limiter->takeDaily($definition)) {
+                $this->log->add('run_failed', [
+                    'action_id' => $actionId, 'post_id' => $post->ID, 'user_id' => $userId, 'code' => 'daily_cap_reached',
+                ]);
+                throw $this->error('daily_cap_reached', 429);
+            }
             $this->log->add('run_started', ['action_id' => $actionId, 'post_id' => $post->ID, 'user_id' => $userId]);
             do_action('editor_ai_sidebar_run_started', $actionId, $post->ID, $userId);
 
@@ -192,20 +198,20 @@ final class Service
                 $request->selection(),
                 fn (): mixed => $run($this->wantsArray($run, 0) ? $request->toArray() : $request)
             );
+
+            if ($thrown !== null) {
+                $this->providerThrew($definition, $post->ID, $userId, $thrown);
+            }
+            if ($this->clientIsGone($userId, $runToken)) {
+                $this->log->add('run_failed', [
+                    'action_id' => $actionId, 'post_id' => $post->ID, 'user_id' => $userId, 'code' => 'run_cancelled',
+                ]);
+                throw $this->error('run_cancelled', 409);
+            }
+            return $this->interpret($definition, $request, $value, $written, null);
         } finally {
             $this->store->delete($lockId);
         }
-
-        if ($thrown !== null) {
-            $this->providerThrew($definition, $post->ID, $userId, $thrown);
-        }
-        if ($this->clientIsGone($userId, $runToken)) {
-            $this->log->add('run_failed', [
-                'action_id' => $actionId, 'post_id' => $post->ID, 'user_id' => $userId, 'code' => 'run_cancelled',
-            ]);
-            throw $this->error('run_cancelled', 409);
-        }
-        return $this->interpret($definition, $request, $value, $written, null);
     }
 
     /**
@@ -337,9 +343,18 @@ final class Service
             throw $this->error('context_changed', 409);
         }
 
-        if (!$this->store->claim($record['id'])) {
+        if (!$this->store->claim($record['id'], Clock::now())) {
             throw $this->error('result_used', 409);
         }
+        // The claim serialises applies. Re-read the record under it so a
+        // reapply cannot apply one item twice or lose another's mark (case 60).
+        $fresh = $this->store->find($record['id'], RecordStore::RESULT);
+        $applied = (array) ($fresh['data']['applied'] ?? []);
+        if ($fresh === null || in_array($itemId, $applied, true)) {
+            $this->store->release($record['id']);
+            throw $this->error('result_used', 409);
+        }
+        $record = $fresh;
 
         if (!$definition->isServerMode()) {
             $this->afterApply($definition, $record, $itemId, $applied);
@@ -473,7 +488,7 @@ final class Service
         if ($record['used']) {
             throw $this->error('result_used', 409);
         }
-        if (!$this->store->claim($record['id'])) {
+        if (!$this->store->claim($record['id'], Clock::now())) {
             throw $this->error('result_used', 409);
         }
         $definition = $this->registry->find($record['action_id']);

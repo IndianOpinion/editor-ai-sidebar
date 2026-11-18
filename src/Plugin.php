@@ -83,7 +83,7 @@ final class Plugin
         return $this->service ??= new Service(
             $this->registry(),
             $this->store(),
-            new Limiter(),
+            new Limiter($this->store()),
             $this->log(),
             new ResultValidator(),
             new WriteWatch(),

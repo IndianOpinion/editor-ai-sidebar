@@ -64,9 +64,15 @@ final class DbRecordStore implements RecordStore
         return self::hydrate($row);
     }
 
-    public function claim(string $id): bool
+    public function claim(string $id, int $now): bool
     {
-        $sql = $this->db->prepare('UPDATE %i SET used = 1 WHERE id = %s AND used = 0', $this->table(), $id);
+        $sql = $this->db->prepare(
+            'UPDATE %i SET used = 1 WHERE id = %s AND kind = %s AND used = 0 AND expires_at > %d',
+            $this->table(),
+            $id,
+            self::RESULT,
+            $now
+        );
         return $this->db->query((string) $sql) === 1;
     }
 
@@ -141,6 +147,38 @@ final class DbRecordStore implements RecordStore
             $expiresAt
         );
         return $this->db->query((string) $sql) === 1;
+    }
+
+    public function incrementCounter(string $id, string $actionId, int $limit, int $now, int $expiresAt): bool
+    {
+        $sql = $this->db->prepare(
+            'INSERT IGNORE INTO %i (id, kind, user_id, post_id, action_id, data, context_hash, created_at, expires_at, used, hits)'
+            . ' VALUES (%s, %s, 0, 0, %s, %s, %s, %d, %d, 0, 0)',
+            $this->table(),
+            $id,
+            self::COUNTER,
+            $actionId,
+            '{}',
+            '',
+            $now,
+            $expiresAt
+        );
+        $this->db->query((string) $sql);
+        $sql = $this->db->prepare(
+            'UPDATE %i SET hits = hits + 1 WHERE id = %s AND kind = %s AND hits < %d',
+            $this->table(),
+            $id,
+            self::COUNTER,
+            $limit
+        );
+        return $this->db->query((string) $sql) === 1;
+    }
+
+    public function counter(string $id): int
+    {
+        $sql = $this->db->prepare('SELECT hits FROM %i WHERE id = %s AND kind = %s', $this->table(), $id, self::COUNTER);
+        $value = $this->db->get_var((string) $sql);
+        return is_numeric($value) ? (int) $value : 0;
     }
 
     public function purgeExpired(int $now): int

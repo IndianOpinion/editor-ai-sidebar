@@ -62,10 +62,10 @@ final class MemoryRecordStore implements RecordStore
         return $row !== null && $row['kind'] === $kind ? $row : null;
     }
 
-    public function claim(string $id): bool
+    public function claim(string $id, int $now): bool
     {
         $table = &$this->table();
-        if (!isset($table[$id]) || $table[$id]['used']) {
+        if (!isset($table[$id]) || $table[$id]['kind'] !== self::RESULT || $table[$id]['used'] || $table[$id]['expires_at'] <= $now) {
             return false;
         }
         $table[$id]['used'] = true;
@@ -115,6 +115,26 @@ final class MemoryRecordStore implements RecordStore
         }
         unset($table[$id]);
         return $this->insert($id, self::LOCK, $userId, $postId, $actionId, [], '', $now, $expiresAt);
+    }
+
+    public function incrementCounter(string $id, string $actionId, int $limit, int $now, int $expiresAt): bool
+    {
+        $table = &$this->table();
+        if (!isset($table[$id])) {
+            $this->insert($id, self::COUNTER, 0, 0, $actionId, [], '', $now, $expiresAt);
+            $table[$id]['hits'] = 0;
+        }
+        if ($table[$id]['kind'] !== self::COUNTER || $table[$id]['hits'] >= $limit) {
+            return false;
+        }
+        $table[$id]['hits']++;
+        return true;
+    }
+
+    public function counter(string $id): int
+    {
+        $row = $this->table()[$id] ?? null;
+        return $row !== null && $row['kind'] === self::COUNTER ? (int) $row['hits'] : 0;
     }
 
     public function purgeExpired(int $now): int

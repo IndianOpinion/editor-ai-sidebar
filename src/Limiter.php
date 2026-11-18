@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace IndianOpinion\EditorAiSidebar;
 
+use IndianOpinion\EditorAiSidebar\Store\RecordStore;
+
 /**
  * The host rate limit per user (case 28) and the daily run cap per action
- * (ruling 4). Both are safety nets kept in transients; neither is a spend
- * cap, and neither is exact under heavy concurrency.
+ * (ruling 4). Neither is a spend cap. The rate limit is a click guard kept
+ * in a transient and is not exact under heavy concurrency. The daily cap
+ * is a counter row in the record table, taken with one conditional UPDATE,
+ * so concurrent runs cannot push it past the cap.
  */
 final class Limiter
 {
+    public function __construct(private readonly RecordStore $store)
+    {
+    }
+
     /**
      * Count a run against the user's window.
      *
@@ -52,20 +60,33 @@ final class Limiter
         return $cap > 0 && $this->dailyCount($definition->id()) >= $cap;
     }
 
-    public function countDaily(string $actionId): void
+    /**
+     * Count one run against the action's cap for today, atomically.
+     * False when the cap was already reached; nothing is counted then.
+     */
+    public function takeDaily(ActionDefinition $definition): bool
     {
-        $key = self::dailyKey($actionId);
-        set_transient($key, $this->dailyCount($actionId) + 1, 2 * DAY_IN_SECONDS);
+        $cap = $this->dailyCap($definition);
+        if ($cap === 0) {
+            return true;
+        }
+        $now = Clock::now();
+        return $this->store->incrementCounter(
+            self::dailyKey($definition->id()),
+            $definition->id(),
+            $cap,
+            $now,
+            $now + 2 * DAY_IN_SECONDS
+        );
     }
 
     public function dailyCount(string $actionId): int
     {
-        $count = get_transient(self::dailyKey($actionId));
-        return is_numeric($count) ? (int) $count : 0;
+        return $this->store->counter(self::dailyKey($actionId));
     }
 
     private static function dailyKey(string $actionId): string
     {
-        return 'editor_ai_sidebar_dc_' . md5($actionId) . '_' . gmdate('Ymd', Clock::now());
+        return 'cap-' . md5($actionId) . '-' . gmdate('Ymd', Clock::now());
     }
 }
