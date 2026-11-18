@@ -192,6 +192,10 @@ npm test              # sidebar script tests (Node 20 or later, no dependencies)
 
 The MySQL integration test runs when `EDITOR_AI_SIDEBAR_TEST_MYSQL` points at a server (`host:port` or a socket path, user `root`, no password).
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Licence
 
 MIT. Copyright (c) 2026 Indian Opinion. See [LICENSE](LICENSE).
