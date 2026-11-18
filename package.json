@@ -1,0 +1,14 @@
+{
+  "name": "@indianopinion/editor-ai-sidebar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tests for the sidebar scripts of the Editor AI Sidebar WordPress plugin. The scripts ship as plain files with no build step.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/js/*.test.js",
+    "lint": "node --check assets/js/core.js && node --check assets/js/view.js && node --check assets/js/sidebar.js"
+  }
+}

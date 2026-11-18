@@ -1,0 +1,129 @@
+/* Editor AI Sidebar. Logical properties keep it right-to-left safe. */
+.eas-sidebar {
+	padding-block: 8px;
+}
+
+.eas-toolbar {
+	display: flex;
+	justify-content: flex-end;
+	padding-inline: 16px;
+}
+
+.eas-empty,
+.eas-loading {
+	padding-inline: 16px;
+}
+
+.eas-action {
+	margin-block-end: 16px;
+}
+
+.eas-description,
+.eas-reason {
+	margin-block: 4px 0;
+	color: #757575;
+	font-size: 12px;
+}
+
+.eas-busy {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-block-start: 8px;
+}
+
+.eas-error {
+	margin-block-start: 8px;
+	padding: 8px 12px;
+	border-inline-start: 4px solid #cc1818;
+	background: #fcf0f1;
+}
+
+.eas-result {
+	margin-block-start: 8px;
+	padding: 8px 12px;
+	border: 1px solid #ddd;
+	border-radius: 2px;
+}
+
+.eas-result-header {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 12px;
+	font-size: 12px;
+}
+
+.eas-items {
+	margin: 0;
+	padding-inline-start: 1.25em;
+}
+
+.eas-item {
+	margin-block: 12px;
+	unicode-bidi: isolate;
+}
+
+.eas-value {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.eas-value.is-collapsed {
+	max-height: 12em;
+	overflow: hidden;
+	mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
+
+.eas-fields dt {
+	font-weight: 600;
+}
+
+.eas-fields dd {
+	margin-inline-start: 0;
+	margin-block-end: 8px;
+}
+
+.eas-notes {
+	margin: 4px 0;
+	padding: 0;
+	list-style: none;
+	font-size: 12px;
+}
+
+.eas-note.is-warning {
+	color: #8a4d00;
+	font-weight: 600;
+}
+
+.eas-score {
+	display: inline-block;
+	font-size: 12px;
+	color: #1e1e1e;
+}
+
+.eas-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-block-start: 8px;
+}
+
+.eas-confirm {
+	margin-block-start: 8px;
+	padding: 8px;
+	background: #f0f6fc;
+}
+
+.eas-applied {
+	color: #007017;
+}
+
+.eas-counter {
+	margin: 0;
+	font-size: 12px;
+	color: #757575;
+}
+
+.eas-counter.is-over {
+	color: #cc1818;
+}

@@ -583,6 +583,14 @@ expires_in }`.
 `approved` missing or not `true` is 400 `approval_missing`. This keeps a
 script that replays a run response from applying it by accident.
 
+Additions accepted in 0.1.0 (all additive; docs/ARCHITECTURE.md has the
+detail): error codes `daily_cap_reached` 429, `result_mismatch` 400,
+`item_unknown` 400, `value_invalid` 422, `run_cancelled` 409 and
+`storage_error` 500; an optional `run_token` on run, which
+`DELETE /jobs/<run_token>` uses to cancel a synchronous run; `pending_job`
+on each action descriptor, so a queued run resumes after a reload; and
+`position`, `attribute`, `meta_map` and `sync` in the apply response.
+
 Error codes (body `{ code, message, data: { status } }`):
 `sidebar_disabled` 503, `rest_forbidden` 401/403, `post_missing` 404,
 `action_unknown` 404, `action_disabled` 403, `action_unavailable` 409,
@@ -670,6 +678,11 @@ There is no CLI to run or apply an action. Apply needs a human click.
 - **Event log**: one option, `editor_ai_sidebar_log`, not autoloaded, a ring
   of the latest 500 events: time, event, action id, post id, user id,
   result id, code. Never item text, never context.
+- Storage as built: the owner ruled on open question 6 for a small custom
+  table instead of transients. Result records, job records, run locks and
+  the per-action daily counters are rows in one table per site, removed on
+  uninstall; the rate limit stays a transient. docs/ARCHITECTURE.md records
+  the layout.
 - Nothing is stored in post meta. Nothing is written to the post by this
   plugin, ever; only providers write, and only on apply.
 - **Uninstall** deletes the two options and every transient with the
@@ -723,9 +736,13 @@ admin screen.
 
 ## 9. Performance budget
 
-- Editor load: one script, under 40 KB minified, and one small stylesheet,
-  enqueued only on the block editor for enabled post types. No request at
-  load.
+- Editor load: the sidebar scripts, under 60 KB unminified in total, and
+  one small stylesheet, enqueued only on the block editor for enabled post
+  types. No request at load. The budget was 40 KB minified; the owner's
+  ruling on open question 5 (plain scripts, no build step) means the files
+  ship as written and tested, with no minifier, so the budget is set on the
+  unminified bytes instead. A site that wants smaller files can serve them
+  through its own minifier.
 - Opening the sidebar: one `GET /actions`, server time under 50 ms with ten
   registered actions excluding the providers' own `available` callbacks.
   Providers are told in the README to keep `available` cheap.
