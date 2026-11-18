@@ -496,6 +496,22 @@ final class RunTest extends TestCase
         self::assertSame(['test/headline', $post, self::EDITOR, 'provider_error'], $this->firedOf('editor_ai_sidebar_run_failed')[0][1]);
     }
 
+    public function testExceptionDetailInTheLogHasSecretsRedacted(): void
+    {
+        $this->counting([], static function (): never {
+            throw new \RuntimeException(
+                'GET https://provider.example/v1/run?api_key=hunter2 failed; Authorization: Bearer abcdefghijklmnop; ' . 'sk-' . 'abcdefghijklmnopqrstuv'
+            );
+        });
+        $this->runAction('test/headline', $this->post(), self::context());
+        $failed = array_values(array_filter($this->plugin->log()->all(), static fn (array $e): bool => $e['event'] === 'run_failed'));
+        $detail = $failed[0]['detail'];
+        self::assertStringContainsString('RuntimeException: GET https://provider.example/v1/run?[redacted]', $detail);
+        foreach (['hunter2', 'abcdefghijklmnop', 'sk-abcdef'] as $secret) {
+            self::assertStringNotContainsString($secret, $detail);
+        }
+    }
+
     public function testT38ProviderWpErrorPassesThroughAsText(): void
     {
         $this->counting([], static fn (): \WP_Error => new \WP_Error(

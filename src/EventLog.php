@@ -101,6 +101,25 @@ final class EventLog
     private static function clip(string $text): string
     {
         $text = trim((string) preg_replace('/\s+/u', ' ', $text));
+        $text = self::redact($text);
         return function_exists('mb_substr') ? mb_substr($text, 0, 300) : substr($text, 0, 300);
+    }
+
+    /**
+     * Provider exception messages can quote a request URL or header. Drop
+     * query strings, URL credentials and anything that looks like a key,
+     * token, secret or password before it reaches the shared log.
+     */
+    private static function redact(string $text): string
+    {
+        $rules = [
+            '#(https?://)[^/\s:@]+:[^/\s@]+@#i' => '$1[redacted]@',
+            '#(https?://[^\s?]+)\?\S*#i' => '$1?[redacted]',
+            '/\b(bearer|basic)\s+[A-Za-z0-9._~+\/=-]{8,}/i' => '$1 [redacted]',
+            '/\b([A-Za-z_-]*(?:key|token|secret|password|passwd|authorization))(["\']?\s*[:=]\s*["\']?)[^\s"\',;&]+/i'
+                => '$1$2[redacted]',
+            '/\b(sk|pk|rk)-[A-Za-z0-9_-]{16,}/' => '[redacted]',
+        ];
+        return (string) preg_replace(array_keys($rules), array_values($rules), $text);
     }
 }
