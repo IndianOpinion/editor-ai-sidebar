@@ -81,14 +81,16 @@ Every response from the namespace carries `Cache-Control: no-store` and
 4. **The host adds a daily run cap per action.** Definition key `daily_cap`
    (default 200, 1 to 100,000), filter `editor_ai_sidebar_daily_cap`
    (`$cap, $action_id`; returning 0 switches the host cap off). The count is
-   per site, per UTC day, and counts runs that reached the provider. Over
+   per site, per UTC day, and counts runs that reached the provider. It is a
+   counter row in the record table, taken with one conditional
+   `UPDATE ... SET hits = hits + 1 WHERE hits < cap` after the run lock, so
+   concurrent runs cannot exceed the cap. Over
    it: 429 `daily_cap_reached`, logged. Reason: a safety net for providers
    that forget their own; it is not a spend cap.
 5. **Plain scripts, no build step, using the WordPress globals.** Reason:
    nothing to install to change a line, and the shipped file is the tested
-   file. Cost: the scripts ship unminified, about 54 KB with the stylesheet
-   (15 KB gzipped), over the PRD's 40 KB minified budget in raw bytes; see
-   "Budgets" below.
+   file. Cost: the scripts ship unminified, about 54 KB (15 KB gzipped). The PRD budget is now 60 KB unminified for that
+   reason; see "Budgets" below.
 6. **A small custom table for result records.** `{prefix}editor_ai_sidebar_records`
    per site, created with `dbDelta` on activation and lazily on the first
    admin or REST request (which also covers must-use installs), then checked
@@ -156,9 +158,20 @@ Every response from the namespace carries `Cache-Control: no-store` and
   `connection_aborted()`) and answers `run_cancelled` without issuing a
   result id. PHP cannot interrupt the provider's own call.
 - **Locks (case 26).** A lock row per user, post and action, inserted with
-  `INSERT IGNORE` on the primary key, lifetime `timeout` plus 30 seconds,
-  deleted when the run ends. An open job for the same action also counts as
-  in flight.
+  `INSERT IGNORE` on the primary key, lifetime `timeout` plus 30 seconds.
+  The open-job check runs after the lock is taken, and the lock is held
+  until the job record (if any) is stored, so no second run slips in
+  between. An open job for the same action counts as in flight.
+- **Claims.** `claim` is one conditional `UPDATE` that matches only an
+  unused, unexpired result row. After a claim the record is read again, so
+  with `reapply` an item is never applied twice and one apply cannot
+  overwrite another's mark.
+- **Block attributes stored as HTML.** `set_block_attribute` escapes the
+  value when the attribute is `rich-text` or sourced from markup (for
+  example a caption), so provider text never becomes markup.
+- **Log redaction.** Event log details drop URL query strings, URL
+  credentials and values that look like keys, tokens, secrets or
+  passwords before they are stored.
 - **Records keep the declared context.** Section 6 lists what a record
   holds; this build also stores the declared context, so `validate` and
   `poll` receive the original `RunRequest`. It is the user's own draft, it
@@ -208,10 +221,11 @@ Every response from the namespace carries `Cache-Control: no-store` and
   editor for sidebar post types, for users who may use it. No request until
   the sidebar opens.
 - Per run or apply, outside the provider: one primary-key read or insert on
-  the table, the lock insert and delete, and two transient reads and writes
-  (rate limit, daily cap).
+  the table, the lock insert and delete, the daily counter read and its
+  conditional update, and one transient read and write (rate limit).
 - Polling never faster than 2 seconds, backing off to 15.
-- Script size: see ruling 5. Minifying by hand would make the shipped file
+- Script size: under 60 KB unminified (PRD section 9, changed for
+  ruling 5). Minifying by hand would make the shipped file
   differ from the tested file; a site that wants smaller files can serve
   them through its own minifier.
 
